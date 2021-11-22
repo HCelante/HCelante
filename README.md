@@ -1,5 +1,8 @@
-### Hi 👋
+### Hello, I'm Higor 👋
+[![Higor's GitHub stats](https://github-readme-stats.vercel.app/api?username=hcelante)]
 
+- 🔭 I’m currently working on KMM - logistic solutions
+- 🌱 I’m currently interested in Machine Learning
 <!--
 
 - 🔭 I’m currently working on ...
