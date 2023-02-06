@@ -4,7 +4,7 @@
 
 
 
-- 🔭 I’m currently working on KMM - logistic solutions
+- 🔭 I’m currently working on Hubii
 - 🌱 I’m currently interested in Machine Learning
 <!--
 
