@@ -468,7 +468,7 @@ async function generateGif(asciiLines) {
   encoder.start();
   encoder.setRepeat(0);   // 0 = loop infinito
   encoder.setDelay(DELAY);
-  encoder.setQuality(10);
+  encoder.setQuality(6);
 
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
