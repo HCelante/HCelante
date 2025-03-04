@@ -40,20 +40,22 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       repoMaisAtivo,
       totalPRs7d,
       totalIssues7d,
-      linguagemMaisUsada
+      linguagemMaisUsada,
+      segundaLinguagemMaisUsada
     } = await getAllStats(octokit, USERNAME);
 
     // 3. Montar as linhas do "painel ASCII"
     const dataAgora = new Date().toISOString().replace('T', ' ').split('.')[0] + ' UTC';
     const asciiLines = [
       "┌─────────────────────────────────────┐",
-      "│       Back-end Dev Statistics      │",
+      "│              Statistics             │",
       "├─────────────────────────────────────┤",
-      `│ Commits (últimos 7 dias):   ${totalCommits7d.toString().padEnd(3," ")}   │`,
+      `│ Commits (últimos 7 dias):     ${totalCommits7d.toString().padEnd(3," ")}   │`,
       `│ PRs criadas (últimos 7 dias): ${totalPRs7d.toString().padEnd(3," ")}   │`,
-      `│ Issues abertas (últimos 7 dias):${totalIssues7d.toString().padEnd(3," ")}│`,
+      `│ Issues abertas (últimos 7 dias): ${totalIssues7d.toString().padEnd(3," ")}│`,
       "├─────────────────────────────────────┤",
       `│ Linguagem + usada: ${linguagemMaisUsada.padEnd(14," ")}        │`,
+      `│ 2ª linguagem + usada: ${segundaLinguagemMaisUsada.padEnd(10," ")}        │`,
       `│ Repositório + ativo: ${repoMaisAtivo.padEnd(14," ")}           │`,
       "└─────────────────────────────────────┘",
       ` Last update: ${dataAgora} `
@@ -123,11 +125,21 @@ async function getAllStats(octokit, username) {
 
   // 3) Descobrir linguagem mais usada
   let linguagemMaisUsada = 'N/A';
+  let segundaLinguagemMaisUsada = 'N/A';
   let maxLangValue = 0;
+  let secondMaxLangValue = 0;
   for (const [lang, total] of Object.entries(languageTotals)) {
     if (total > maxLangValue) {
+      // A atual linguagem mais usada passa a ser a segunda
+      segundaLinguagemMaisUsada = linguagemMaisUsada;
+      secondMaxLangValue = maxLangValue;
+      // E a nova é a mais usada
       maxLangValue = total;
       linguagemMaisUsada = lang;
+    } else if (total > secondMaxLangValue) {
+      // Se não for maior que a primeira, mas for maior que a segunda
+      secondMaxLangValue = total;
+      segundaLinguagemMaisUsada = lang;
     }
   }
 
@@ -140,7 +152,8 @@ async function getAllStats(octokit, username) {
     repoMaisAtivo,
     totalPRs7d,
     totalIssues7d,
-    linguagemMaisUsada
+    linguagemMaisUsada,
+    segundaLinguagemMaisUsada
   };
 }
 
@@ -245,9 +258,10 @@ async function countSearchItems(octokit, query) {
  * Gera o GIF animado, simulando "digitação" do array asciiLines.
  */
 async function generateGif(asciiLines) {
-  const WIDTH = 600;
+  const WIDTH = 1200;
   const HEIGHT = 250;
   const DELAY = 100;   // ms por frame
+  const END_DELAY = 2000; // delay maior no final da animação (em ms)
 
   const encoder = new GIFEncoder(WIDTH, HEIGHT);
   const outputFile = path.join(__dirname, '..', 'retro-stats.gif');
@@ -279,6 +293,14 @@ async function generateGif(asciiLines) {
     }
   }
 
+  // Adiciona uma pausa maior no final da animação antes de recomeçar
+  const framesNoFinal = Math.ceil(END_DELAY / DELAY);
+  encoder.setDelay(DELAY); // Mantém o mesmo delay para consistência
+  for (let i = 0; i < framesNoFinal; i++) {
+    drawFrame(ctx, typedLines, WIDTH, HEIGHT);
+    encoder.addFrame(ctx);
+  }
+
   encoder.finish();
 }
 
@@ -292,9 +314,15 @@ function drawFrame(ctx, lines, width, height) {
   ctx.fillStyle = '#00ff00';
   ctx.font = '16px monospace';
 
+  // Centralizando o texto horizontalmente
+  // Assumindo que as linhas têm aproximadamente a mesma largura
+  // Estimando a largura do texto com base no número de caracteres
+  const lineWidth = ctx.measureText(lines[0]).width || 560; // Largura estimada da linha mais longa
+  const startX = (width - lineWidth) / 2;
+  
   let y = 40;
   for (const line of lines) {
-    ctx.fillText(line, 20, y);
+    ctx.fillText(line, startX, y);
     y += 20;
   }
 }
