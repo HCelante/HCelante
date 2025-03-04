@@ -1,9 +1,12 @@
 name: Retro Stats
 
 on:
-  schedule:
-    - cron: "0 2 * * *"  # roda todo dia às 02h (UTC)
-  workflow_dispatch:
+    push:
+        branches:
+            - main
+    schedule:
+        - cron: "0 2 * * *"  # roda todo dia às 02h (UTC)
+    workflow_dispatch:
 
 jobs:
   build:
