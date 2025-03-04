@@ -457,8 +457,8 @@ async function countSearchItems(octokit, query) {
 async function generateGif(asciiLines) {
   const WIDTH = 1200;
   const HEIGHT = 900;
-  const DELAY = 50;   // ms por frame
-  const END_DELAY = 2000; // delay maior no final da animação (em ms)
+  const DELAY = 10;   // ms por frame
+  const END_DELAY = 6000; // delay maior no final da animação (em ms)
 
   const encoder = new GIFEncoder(WIDTH, HEIGHT);
   const outputFile = path.join(__dirname, '..', 'retro-stats.gif');
