@@ -41,7 +41,9 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       totalPRs7d,
       totalIssues7d,
       linguagemMaisUsada,
-      segundaLinguagemMaisUsada
+      segundaLinguagemMaisUsada,
+      terceiraLinguagemMaisUsada,
+      quartaLinguagemMaisUsada
     } = await getAllStats(octokit, USERNAME);
 
     // 3. Montar as linhas do "painel ASCII"
@@ -60,17 +62,19 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
     }
     
     const asciiLines = [
-      "┌─────────────────────────────────────┐", // 39 caracteres
-      "│              Statistics             │", // 39 caracteres
-      "├─────────────────────────────────────┤", // 39 caracteres
+      "┌────────────────────────────────────────────────────────────────────────────────┐",
+      "│                                   Statistics                                   │",
+      "├────────────────────────────────────────────────────────────────────────────────┤",
       formatarLinha("Commits (últimos 7 dias):", totalCommits7d.toString()),
       formatarLinha("PRs criadas (últimos 7 dias):", totalPRs7d.toString()),
       formatarLinha("Issues abertas (últimos 7 dias):", totalIssues7d.toString()),
-      "├─────────────────────────────────────┤", // 39 caracteres
+      "├────────────────────────────────────────────────────────────────────────────────┤",
       formatarLinha("Linguagem + usada:", linguagemMaisUsada),
       formatarLinha("2ª linguagem + usada:", segundaLinguagemMaisUsada),
+      formatarLinha("3ª linguagem + usada:", terceiraLinguagemMaisUsada),
+      formatarLinha("4ª linguagem + usada:", quartaLinguagemMaisUsada),
       formatarLinha("Repositório + ativo:", repoMaisAtivo),
-      "└─────────────────────────────────────┘", // 39 caracteres
+      "└────────────────────────────────────────────────────────────────────────────────┘",
       ` Last update: ${dataAgora} `
     ];
 
@@ -87,6 +91,8 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       totalIssues7d,
       linguagemMaisUsada,
       segundaLinguagemMaisUsada,
+      terceiraLinguagemMaisUsada,
+      quartaLinguagemMaisUsada,
       dataAgora
     });
     
@@ -165,20 +171,50 @@ async function getAllStats(octokit, username) {
   // 3) Descobrir linguagem mais usada (com verificação extra)
   let linguagemMaisUsada = 'N/A';
   let segundaLinguagemMaisUsada = 'N/A';
-  let maxLangValue = -1; // Inicializar com -1 para garantir que qualquer valor maior será considerado
+  let terceiraLinguagemMaisUsada = 'N/A';
+  let quartaLinguagemMaisUsada = 'N/A';
+  let maxLangValue = -1;
   let secondMaxLangValue = -1;
+  let thirdMaxLangValue = -1;
+  let fourthMaxLangValue = -1;
   
   // Verificar se temos dados de linguagens antes de processá-los
   if (Object.keys(languageTotals).length > 0) {
     for (const [lang, total] of Object.entries(languageTotals)) {
       if (total > maxLangValue) {
+        // Deslocar todos os valores
+        quartaLinguagemMaisUsada = terceiraLinguagemMaisUsada;
+        fourthMaxLangValue = thirdMaxLangValue;
+        
+        terceiraLinguagemMaisUsada = segundaLinguagemMaisUsada;
+        thirdMaxLangValue = secondMaxLangValue;
+        
         segundaLinguagemMaisUsada = linguagemMaisUsada;
         secondMaxLangValue = maxLangValue;
+        
         maxLangValue = total;
         linguagemMaisUsada = lang;
       } else if (total > secondMaxLangValue) {
+        // Deslocar do segundo para frente
+        quartaLinguagemMaisUsada = terceiraLinguagemMaisUsada;
+        fourthMaxLangValue = thirdMaxLangValue;
+        
+        terceiraLinguagemMaisUsada = segundaLinguagemMaisUsada;
+        thirdMaxLangValue = secondMaxLangValue;
+        
         secondMaxLangValue = total;
         segundaLinguagemMaisUsada = lang;
+      } else if (total > thirdMaxLangValue) {
+        // Deslocar do terceiro para frente
+        quartaLinguagemMaisUsada = terceiraLinguagemMaisUsada;
+        fourthMaxLangValue = thirdMaxLangValue;
+        
+        thirdMaxLangValue = total;
+        terceiraLinguagemMaisUsada = lang;
+      } else if (total > fourthMaxLangValue) {
+        // Atualizar apenas o quarto
+        fourthMaxLangValue = total;
+        quartaLinguagemMaisUsada = lang;
       }
     }
   } else {
@@ -195,7 +231,9 @@ async function getAllStats(octokit, username) {
     totalPRs7d,
     totalIssues7d,
     linguagemMaisUsada,
-    segundaLinguagemMaisUsada
+    segundaLinguagemMaisUsada,
+    terceiraLinguagemMaisUsada,
+    quartaLinguagemMaisUsada
   };
 }
 
@@ -415,6 +453,8 @@ async function generateReadme(stats) {
     totalIssues7d,
     linguagemMaisUsada,
     segundaLinguagemMaisUsada,
+    terceiraLinguagemMaisUsada,
+    quartaLinguagemMaisUsada,
     dataAgora
   } = stats;
   
@@ -431,6 +471,8 @@ async function generateReadme(stats) {
 - **Issues abertas:** ${totalIssues7d}
 - **Linguagem mais usada:** ${linguagemMaisUsada}
 - **Segunda linguagem mais usada:** ${segundaLinguagemMaisUsada}
+- **Terceira linguagem mais usada:** ${terceiraLinguagemMaisUsada}
+- **Quarta linguagem mais usada:** ${quartaLinguagemMaisUsada}
 - **Repositório mais ativo:** ${repoMaisAtivo}
 
 Atualizado em: ${dataAgora}
