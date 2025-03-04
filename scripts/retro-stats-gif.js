@@ -132,11 +132,15 @@ async function getAllStats(octokit, username) {
     //    (Cada linguagem retorna { languageName: linesOfCode })
     //    Precisamos de permissões para ver repositórios privados, se existirem.
     try {
-      const langRes = await octokit.repos.getLanguages({
+      const langRes = await octokit.repos.listLanguages({
         owner: username,
         repo: name
       });
       const langs = langRes.data; // Ex.: { "JavaScript": 12345, "HTML": 200, ... }
+      
+      // Log para debug
+      console.log(`Linguagens em ${name}:`, Object.keys(langs).length ? Object.keys(langs) : "Nenhuma");
+      
       for (const [lang, count] of Object.entries(langs)) {
         if (!languageTotals[lang]) {
           languageTotals[lang] = 0;
@@ -144,8 +148,8 @@ async function getAllStats(octokit, username) {
         languageTotals[lang] += count;
       }
     } catch (err) {
-      // Se der erro, ignora esse repositório (pode ser fork, etc.)
-      // console.log(`Erro ao pegar linguagens de ${name}`, err);
+      // Se der erro, mostrar o erro completo para debugging
+      console.error(`Erro ao pegar linguagens de ${name}:`, err.message);
     }
   }
 
@@ -197,18 +201,39 @@ async function getAllStats(octokit, username) {
 async function listAllUserRepos(octokit, username) {
   let page = 1;
   const allRepos = [];
+  
+  console.log(`Buscando repositórios para o usuário: ${username}`);
+  
   while (true) {
-    const { data } = await octokit.repos.listForUser({
-      username,
-      per_page: REPOS_PER_PAGE,
-      page
-    });
-    allRepos.push(...data);
-    if (data.length < REPOS_PER_PAGE) {
-      break; // não há mais páginas
+    try {
+      const { data } = await octokit.repos.listForUser({
+        username,
+        per_page: REPOS_PER_PAGE,
+        page,
+        // Tente incluir repositórios privados se possível
+        type: "all"
+      });
+      
+      console.log(`Página ${page}: Encontrados ${data.length} repositórios`);
+      
+      if (data.length === 0) {
+        console.warn("Nenhum repositório encontrado! Verifique o nome de usuário.");
+        break;
+      }
+      
+      allRepos.push(...data);
+      
+      if (data.length < REPOS_PER_PAGE) {
+        break; // não há mais páginas
+      }
+      page++;
+    } catch (error) {
+      console.error("Erro ao listar repositórios:", error.message);
+      break;
     }
-    page++;
   }
+  
+  console.log(`Total de repositórios encontrados: ${allRepos.length}`);
   return allRepos;
 }
 
@@ -358,30 +383,6 @@ function drawFrame(ctx, lines, width, height) {
     ctx.fillText(line, startX, y);
     y += 20;
   }
-}
-
-// Na parte que coleta os dados de linguagens (que provavelmente existe em algum lugar do código):
-async function getLanguageTotals(octokit, username, repos) {
-  const languageTotals = {};
-  
-  for (const repo of repos) {
-    try {
-      // Obter linguagens do repositório
-      const { data: languages } = await octokit.rest.repos.listLanguages({
-        owner: username,
-        repo: repo.name
-      });
-      
-      // Adicionar bytes de cada linguagem ao total
-      for (const [lang, bytes] of Object.entries(languages)) {
-        languageTotals[lang] = (languageTotals[lang] || 0) + bytes;
-      }
-    } catch (error) {
-      console.error(`Erro ao obter linguagens para ${repo.name}:`, error);
-    }
-  }
-  
-  return languageTotals;
 }
 
 /**
