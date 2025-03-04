@@ -20,7 +20,7 @@ const GIFEncoder = require('gifencoder');
 const { Octokit } = require('@octokit/rest');
 
 // Configure aqui o seu usuário e quantos repositórios queremos pegar por página
-const USERNAME = 'SEU_USUARIO'; // Troque pelo seu usuário real
+const USERNAME = 'hcelante'; // Troque pelo seu usuário real
 const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
 
 /**
