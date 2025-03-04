@@ -43,7 +43,15 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       linguagemMaisUsada,
       segundaLinguagemMaisUsada,
       terceiraLinguagemMaisUsada,
-      quartaLinguagemMaisUsada
+      quartaLinguagemMaisUsada,
+      
+      // Estatísticas gerais
+      totalRepos,
+      reposPublicos,
+      reposPrivados,
+      totalStars,
+      totalForks,
+      userCreatedAt
     } = await getAllStats(octokit, USERNAME);
 
     // 3. Montar as linhas do "painel ASCII"
@@ -61,22 +69,54 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       return `│ ${texto}${" ".repeat(espacoDisponivel)}${valor} │`;
     }
     
+    // Função para criar linhas de título e separadores com tamanho exato
+    function criarLinhaTitulo(texto) {
+      const espacos = LARGURA_LINHA - texto.length - 4; // -4 para "│ " e " │"
+      const espacosEsquerda = Math.floor(espacos / 2);
+      const espacosDireita = espacos - espacosEsquerda;
+      return `│ ${" ".repeat(espacosEsquerda)}${texto}${" ".repeat(espacosDireita)} │`;
+    }
+    
+    const linhaSuperior = "┌" + "─".repeat(LARGURA_LINHA - 2) + "┐";
+    const linhaSeparadora = "├" + "─".repeat(LARGURA_LINHA - 2) + "┤";
+    const linhaInferior = "└" + "─".repeat(LARGURA_LINHA - 2) + "┘";
+    
     const asciiLines = [
-      "┌────────────────────────────────────────────────────────────────────────────────┐",
-      "│                                   Statistics                                   │",
-      "├────────────────────────────────────────────────────────────────────────────────┤",
-      formatarLinha("Commits (últimos 7 dias):  ", totalCommits7d.toString()),
-      formatarLinha("PRs criadas (últimos 7 dias):  ", totalPRs7d.toString()),
-      formatarLinha("Issues abertas (últimos 7 dias):  ", totalIssues7d.toString()),
-      "├────────────────────────────────────────────────────────────────────────────────┤",
-      formatarLinha("Linguagem + usada:  ", linguagemMaisUsada),
-      formatarLinha("2ª linguagem + usada:  ", segundaLinguagemMaisUsada),
-      formatarLinha("3ª linguagem + usada:  ", terceiraLinguagemMaisUsada),
-      formatarLinha("4ª linguagem + usada:  ", quartaLinguagemMaisUsada),
-      formatarLinha("Repositório + ativo:  ", repoMaisAtivo),
-      "└────────────────────────────────────────────────────────────────────────────────┘",
+      linhaSuperior,
+      criarLinhaTitulo("Estatísticas dos últimos 7 dias"),
+      linhaSeparadora,
+      formatarLinha("Commits:", totalCommits7d.toString()),
+      formatarLinha("PRs criadas:", totalPRs7d.toString()),
+      formatarLinha("Issues abertas:", totalIssues7d.toString()),
+      formatarLinha("Repositório + ativo:", repoMaisAtivo),
+      linhaSeparadora,
+      criarLinhaTitulo("Estatísticas Gerais"),
+      linhaSeparadora,
+      formatarLinha("Total de repositórios:", totalRepos.toString()),
+      formatarLinha("Repositórios públicos:", reposPublicos.toString()),
+      formatarLinha("Repositórios privados:", reposPrivados.toString()),
+      formatarLinha("Total de stars:", totalStars.toString()),
+      formatarLinha("Total de forks:", totalForks.toString()),
+      formatarLinha("Conta criada em:", userCreatedAt),
+      linhaSeparadora,
+      criarLinhaTitulo("Linguagens Mais Usadas"),
+      linhaSeparadora,
+      formatarLinha("Linguagem + usada:", linguagemMaisUsada),
+      formatarLinha("2ª linguagem + usada:", segundaLinguagemMaisUsada),
+      formatarLinha("3ª linguagem + usada:", terceiraLinguagemMaisUsada),
+      formatarLinha("4ª linguagem + usada:", quartaLinguagemMaisUsada),
+      linhaInferior,
       ` Last update: ${dataAgora} `
     ];
+
+    // Verificar o tamanho de cada linha (para diagnóstico)
+    console.log("Verificando largura das linhas:");
+    asciiLines.forEach((linha, index) => {
+      if (linha.length !== LARGURA_LINHA && index < asciiLines.length - 1) { // Última linha (Last update) pode ter tamanho diferente
+        console.warn(`Linha ${index + 1} tem ${linha.length} caracteres (esperado: ${LARGURA_LINHA})`);
+        console.warn(`Conteúdo: "${linha}"`);
+      }
+    });
 
     // 4. Gerar GIF animado digitando linha a linha
     await generateGif(asciiLines);
@@ -85,6 +125,7 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
     
     // 5. Gerar ou atualizar README.md
     await generateReadme({
+      // Estatísticas dos últimos 7 dias
       totalCommits7d,
       repoMaisAtivo,
       totalPRs7d,
@@ -93,6 +134,15 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       segundaLinguagemMaisUsada,
       terceiraLinguagemMaisUsada,
       quartaLinguagemMaisUsada,
+      
+      // Estatísticas gerais
+      totalRepos,
+      reposPublicos,
+      reposPrivados,
+      totalStars,
+      totalForks,
+      userCreatedAt,
+      
       dataAgora
     });
     
@@ -113,6 +163,29 @@ async function getAllStats(octokit, username) {
 
   // 1) Listar todos os repositórios do usuário (paginando, se necessário)
   const allRepos = await listAllUserRepos(octokit, username);
+
+  // Estatísticas gerais
+  const totalRepos = allRepos.length;
+  const reposPublicos = allRepos.filter(repo => !repo.private).length;
+  const reposPrivados = allRepos.filter(repo => repo.private).length;
+  
+  // Buscar estatísticas do usuário
+  let totalStars = 0;
+  let totalForks = 0;
+  
+  for (const repo of allRepos) {
+    totalStars += repo.stargazers_count || 0;
+    totalForks += repo.forks_count || 0;
+  }
+  
+  // Obter dados do usuário
+  let userCreatedAt = 'N/A';
+  try {
+    const { data: userData } = await octokit.users.getByUsername({ username });
+    userCreatedAt = new Date(userData.created_at).toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  } catch (error) {
+    console.error("Erro ao obter informações do usuário:", error.message);
+  }
 
   let totalCommits7d = 0;
   let repoMaisAtivo = 'N/A';
@@ -226,6 +299,7 @@ async function getAllStats(octokit, username) {
   const totalIssues7d = await countIssuesLast7Days(octokit, username, sevenDaysAgo);
 
   return {
+    // Estatísticas dos últimos 7 dias
     totalCommits7d,
     repoMaisAtivo,
     totalPRs7d,
@@ -233,7 +307,15 @@ async function getAllStats(octokit, username) {
     linguagemMaisUsada,
     segundaLinguagemMaisUsada,
     terceiraLinguagemMaisUsada,
-    quartaLinguagemMaisUsada
+    quartaLinguagemMaisUsada,
+    
+    // Estatísticas gerais
+    totalRepos,
+    reposPublicos,
+    reposPrivados,
+    totalStars,
+    totalForks,
+    userCreatedAt
   };
 }
 
@@ -374,7 +456,7 @@ async function countSearchItems(octokit, query) {
  */
 async function generateGif(asciiLines) {
   const WIDTH = 1200;
-  const HEIGHT = 500;
+  const HEIGHT = 900;
   const DELAY = 50;   // ms por frame
   const END_DELAY = 2000; // delay maior no final da animação (em ms)
 
@@ -447,6 +529,7 @@ function drawFrame(ctx, lines, width, height) {
  */
 async function generateReadme(stats) {
   const {
+    // Estatísticas dos últimos 7 dias
     totalCommits7d,
     repoMaisAtivo,
     totalPRs7d,
@@ -455,6 +538,15 @@ async function generateReadme(stats) {
     segundaLinguagemMaisUsada,
     terceiraLinguagemMaisUsada,
     quartaLinguagemMaisUsada,
+    
+    // Estatísticas gerais
+    totalRepos,
+    reposPublicos,
+    reposPrivados,
+    totalStars,
+    totalForks,
+    userCreatedAt,
+    
     dataAgora
   } = stats;
   
@@ -469,11 +561,21 @@ async function generateReadme(stats) {
 - **Commits:** ${totalCommits7d}
 - **PRs criadas:** ${totalPRs7d}
 - **Issues abertas:** ${totalIssues7d}
+- **Repositório mais ativo:** ${repoMaisAtivo}
+
+## Estatísticas Gerais
+- **Total de repositórios:** ${totalRepos}
+- **Repositórios públicos:** ${reposPublicos}
+- **Repositórios privados:** ${reposPrivados}
+- **Total de stars:** ${totalStars}
+- **Total de forks:** ${totalForks}
+- **Conta criada em:** ${userCreatedAt}
+
+## Linguagens Mais Usadas
 - **Linguagem mais usada:** ${linguagemMaisUsada}
 - **Segunda linguagem mais usada:** ${segundaLinguagemMaisUsada}
 - **Terceira linguagem mais usada:** ${terceiraLinguagemMaisUsada}
 - **Quarta linguagem mais usada:** ${quartaLinguagemMaisUsada}
-- **Repositório mais ativo:** ${repoMaisAtivo}
 
 Atualizado em: ${dataAgora}
 
