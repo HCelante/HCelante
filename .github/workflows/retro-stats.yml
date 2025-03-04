@@ -1,0 +1,34 @@
+name: Retro Stats
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # roda todo dia às 02h (UTC)
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar o código
+        uses: actions/checkout@v2
+      
+      - name: Instalar Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      
+      - name: Instalar dependências
+        run: npm install
+      
+      - name: Gerar painel retro
+        run: node scripts/retro-stats.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Commitar retro-stats.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add retro-stats.md
+          git commit -m "Atualiza retro-stats.md"
+          git push
