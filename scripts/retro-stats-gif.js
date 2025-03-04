@@ -46,18 +46,31 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
 
     // 3. Montar as linhas do "painel ASCII"
     const dataAgora = new Date().toISOString().replace('T', ' ').split('.')[0] + ' UTC';
+    
+    // Largura fixa para todas as linhas
+    const LARGURA_LINHA = 39; // Largura total incluindo os pipes
+    
+    // Função auxiliar para formatar linha com conteúdo
+    function formatarLinha(texto, valor = "") {
+      // Calcula o espaço disponível após considerar o texto, os pipes e o valor
+      const espacoDisponivel = LARGURA_LINHA - texto.length - valor.length - 4; // -4 para "│ " no início e " │" no final
+      
+      // Cria a linha formatada com o espaço correto
+      return `│ ${texto}${" ".repeat(espacoDisponivel)}${valor} │`;
+    }
+    
     const asciiLines = [
-      "┌─────────────────────────────────────┐",
-      "│              Statistics             │",
-      "├─────────────────────────────────────┤",
-      `│ Commits (últimos 7 dias):     ${totalCommits7d.toString().padEnd(3," ")}   │`,
-      `│ PRs criadas (últimos 7 dias): ${totalPRs7d.toString().padEnd(3," ")}   │`,
-      `│ Issues abertas (últimos 7 dias): ${totalIssues7d.toString().padEnd(3," ")}│`,
-      "├─────────────────────────────────────┤",
-      `│ Linguagem + usada: ${linguagemMaisUsada.padEnd(14," ")}        │`,
-      `│ 2ª linguagem + usada: ${segundaLinguagemMaisUsada.padEnd(10," ")}        │`,
-      `│ Repositório + ativo: ${repoMaisAtivo.padEnd(14," ")}           │`,
-      "└─────────────────────────────────────┘",
+      "┌─────────────────────────────────────┐", // 39 caracteres
+      "│              Statistics             │", // 39 caracteres
+      "├─────────────────────────────────────┤", // 39 caracteres
+      formatarLinha("Commits (últimos 7 dias):", totalCommits7d.toString()),
+      formatarLinha("PRs criadas (últimos 7 dias):", totalPRs7d.toString()),
+      formatarLinha("Issues abertas (últimos 7 dias):", totalIssues7d.toString()),
+      "├─────────────────────────────────────┤", // 39 caracteres
+      formatarLinha("Linguagem + usada:", linguagemMaisUsada),
+      formatarLinha("2ª linguagem + usada:", segundaLinguagemMaisUsada),
+      formatarLinha("Repositório + ativo:", repoMaisAtivo),
+      "└─────────────────────────────────────┘", // 39 caracteres
       ` Last update: ${dataAgora} `
     ];
 
@@ -65,6 +78,19 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
     await generateGif(asciiLines);
 
     console.log("GIF gerado e salvo como retro-stats.gif");
+    
+    // 5. Gerar ou atualizar README.md
+    await generateReadme({
+      totalCommits7d,
+      repoMaisAtivo,
+      totalPRs7d,
+      totalIssues7d,
+      linguagemMaisUsada,
+      segundaLinguagemMaisUsada,
+      dataAgora
+    });
+    
+    console.log("README.md gerado com sucesso!");
   } catch (error) {
     console.error("Erro ao gerar estatísticas e GIF:", error);
     process.exit(1);
@@ -123,24 +149,31 @@ async function getAllStats(octokit, username) {
     }
   }
 
-  // 3) Descobrir linguagem mais usada
+  // Verificar se temos dados de linguagens
+  console.log("Linguagens encontradas:", Object.keys(languageTotals));
+  console.log("Totais por linguagem:", languageTotals);
+
+  // 3) Descobrir linguagem mais usada (com verificação extra)
   let linguagemMaisUsada = 'N/A';
   let segundaLinguagemMaisUsada = 'N/A';
-  let maxLangValue = 0;
-  let secondMaxLangValue = 0;
-  for (const [lang, total] of Object.entries(languageTotals)) {
-    if (total > maxLangValue) {
-      // A atual linguagem mais usada passa a ser a segunda
-      segundaLinguagemMaisUsada = linguagemMaisUsada;
-      secondMaxLangValue = maxLangValue;
-      // E a nova é a mais usada
-      maxLangValue = total;
-      linguagemMaisUsada = lang;
-    } else if (total > secondMaxLangValue) {
-      // Se não for maior que a primeira, mas for maior que a segunda
-      secondMaxLangValue = total;
-      segundaLinguagemMaisUsada = lang;
+  let maxLangValue = -1; // Inicializar com -1 para garantir que qualquer valor maior será considerado
+  let secondMaxLangValue = -1;
+  
+  // Verificar se temos dados de linguagens antes de processá-los
+  if (Object.keys(languageTotals).length > 0) {
+    for (const [lang, total] of Object.entries(languageTotals)) {
+      if (total > maxLangValue) {
+        segundaLinguagemMaisUsada = linguagemMaisUsada;
+        secondMaxLangValue = maxLangValue;
+        maxLangValue = total;
+        linguagemMaisUsada = lang;
+      } else if (total > secondMaxLangValue) {
+        secondMaxLangValue = total;
+        segundaLinguagemMaisUsada = lang;
+      }
     }
+  } else {
+    console.warn("Nenhuma informação de linguagem encontrada!");
   }
 
   // 4) Contar PRs e issues criadas nos últimos 7 dias
@@ -324,5 +357,72 @@ function drawFrame(ctx, lines, width, height) {
   for (const line of lines) {
     ctx.fillText(line, startX, y);
     y += 20;
+  }
+}
+
+// Na parte que coleta os dados de linguagens (que provavelmente existe em algum lugar do código):
+async function getLanguageTotals(octokit, username, repos) {
+  const languageTotals = {};
+  
+  for (const repo of repos) {
+    try {
+      // Obter linguagens do repositório
+      const { data: languages } = await octokit.rest.repos.listLanguages({
+        owner: username,
+        repo: repo.name
+      });
+      
+      // Adicionar bytes de cada linguagem ao total
+      for (const [lang, bytes] of Object.entries(languages)) {
+        languageTotals[lang] = (languageTotals[lang] || 0) + bytes;
+      }
+    } catch (error) {
+      console.error(`Erro ao obter linguagens para ${repo.name}:`, error);
+    }
+  }
+  
+  return languageTotals;
+}
+
+/**
+ * Gera um arquivo README.md com as estatísticas e o GIF
+ */
+async function generateReadme(stats) {
+  const {
+    totalCommits7d,
+    repoMaisAtivo,
+    totalPRs7d,
+    totalIssues7d,
+    linguagemMaisUsada,
+    segundaLinguagemMaisUsada,
+    dataAgora
+  } = stats;
+  
+  const readmePath = path.join(__dirname, '..', 'README.md');
+  
+  // Conteúdo do README
+  const content = `# Estatísticas GitHub
+
+![Estatísticas em GIF](retro-stats.gif)
+
+## Dados dos últimos 7 dias
+- **Commits:** ${totalCommits7d}
+- **PRs criadas:** ${totalPRs7d}
+- **Issues abertas:** ${totalIssues7d}
+- **Linguagem mais usada:** ${linguagemMaisUsada}
+- **Segunda linguagem mais usada:** ${segundaLinguagemMaisUsada}
+- **Repositório mais ativo:** ${repoMaisAtivo}
+
+Atualizado em: ${dataAgora}
+
+---
+`;
+
+  // Salvar o arquivo
+  try {
+    fs.writeFileSync(readmePath, content, 'utf8');
+  } catch (error) {
+    console.error('Erro ao gerar README.md:', error);
+    throw error;
   }
 }
