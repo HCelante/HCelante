@@ -20,8 +20,30 @@ jobs:
         with:
           node-version: "16"
       
+      - name: Verificar e criar package.json
+        run: |
+          if [ ! -f package.json ]; then
+            echo "Criando package.json básico..."
+            echo '{
+              "name": "retro-stats",
+              "version": "1.0.0",
+              "description": "Gerador de estatísticas retro",
+              "dependencies": {
+                "@octokit/rest": "^18.12.0"
+              }
+            }' > package.json
+          fi
+      
       - name: Instalar dependências
         run: npm install
+      
+      - name: Verificar script retro-stats.js
+        run: |
+          if [ ! -f scripts/retro-stats.js ]; then
+            mkdir -p scripts
+            echo "Erro: O arquivo scripts/retro-stats.js não existe. Crie este arquivo com o código necessário." > error.log
+            exit 1
+          fi
       
       - name: Gerar painel retro
         run: node scripts/retro-stats.js
