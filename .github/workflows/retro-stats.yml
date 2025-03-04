@@ -5,18 +5,18 @@ on:
         branches:
             - main
     schedule:
-        - cron: "0 2 * * *"  # roda todo dia às 02h (UTC)
+        - cron: "0 2 * * *"    # atualiza todo dia às 2h (UTC)
     workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checar o código
-        uses: actions/checkout@v2
-      
-      - name: Instalar Node
-        uses: actions/setup-node@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configurar Node
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       
@@ -29,31 +29,25 @@ jobs:
               "version": "1.0.0",
               "description": "Gerador de estatísticas retro",
               "dependencies": {
-                "@octokit/rest": "^18.12.0"
+                "@octokit/rest": "^18.12.0",
+                "gifencoder": "^2.0.1",
+                "canvas": "^2.9.0"
               }
             }' > package.json
           fi
-      
+
       - name: Instalar dependências
         run: npm install
-      
-      - name: Verificar script retro-stats.js
-        run: |
-          if [ ! -f scripts/retro-stats.js ]; then
-            mkdir -p scripts
-            echo "Erro: O arquivo scripts/retro-stats.js não existe. Crie este arquivo com o código necessário." > error.log
-            exit 1
-          fi
-      
-      - name: Gerar painel retro
-        run: node scripts/retro-stats.js
+
+      - name: Gerar GIF
+        run: node scripts/retro-stats-gif.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Commitar retro-stats.md
+
+      - name: Commitar arquivo gerado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add retro-stats.md
-          git commit -m "Atualiza retro-stats.md"
+          git add retro-stats.gif
+          git commit -m "Atualiza retro-stats.gif"
           git push
