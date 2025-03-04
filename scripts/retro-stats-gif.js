@@ -65,15 +65,15 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
       "┌────────────────────────────────────────────────────────────────────────────────┐",
       "│                                   Statistics                                   │",
       "├────────────────────────────────────────────────────────────────────────────────┤",
-      formatarLinha("Commits (últimos 7 dias):", totalCommits7d.toString()),
-      formatarLinha("PRs criadas (últimos 7 dias):", totalPRs7d.toString()),
-      formatarLinha("Issues abertas (últimos 7 dias):", totalIssues7d.toString()),
+      formatarLinha("Commits (últimos 7 dias):  ", totalCommits7d.toString()),
+      formatarLinha("PRs criadas (últimos 7 dias):  ", totalPRs7d.toString()),
+      formatarLinha("Issues abertas (últimos 7 dias):  ", totalIssues7d.toString()),
       "├────────────────────────────────────────────────────────────────────────────────┤",
-      formatarLinha("Linguagem + usada:", linguagemMaisUsada),
-      formatarLinha("2ª linguagem + usada:", segundaLinguagemMaisUsada),
-      formatarLinha("3ª linguagem + usada:", terceiraLinguagemMaisUsada),
-      formatarLinha("4ª linguagem + usada:", quartaLinguagemMaisUsada),
-      formatarLinha("Repositório + ativo:", repoMaisAtivo),
+      formatarLinha("Linguagem + usada:  ", linguagemMaisUsada),
+      formatarLinha("2ª linguagem + usada:  ", segundaLinguagemMaisUsada),
+      formatarLinha("3ª linguagem + usada:  ", terceiraLinguagemMaisUsada),
+      formatarLinha("4ª linguagem + usada:  ", quartaLinguagemMaisUsada),
+      formatarLinha("Repositório + ativo:  ", repoMaisAtivo),
       "└────────────────────────────────────────────────────────────────────────────────┘",
       ` Last update: ${dataAgora} `
     ];
@@ -374,8 +374,8 @@ async function countSearchItems(octokit, query) {
  */
 async function generateGif(asciiLines) {
   const WIDTH = 1200;
-  const HEIGHT = 250;
-  const DELAY = 100;   // ms por frame
+  const HEIGHT = 500;
+  const DELAY = 50;   // ms por frame
   const END_DELAY = 2000; // delay maior no final da animação (em ms)
 
   const encoder = new GIFEncoder(WIDTH, HEIGHT);
