@@ -48,7 +48,7 @@ const REPOS_PER_PAGE = 50;      // Aumente ou diminua se necessário
     const dataAgora = new Date().toISOString().replace('T', ' ').split('.')[0] + ' UTC';
     
     // Largura fixa para todas as linhas
-    const LARGURA_LINHA = 39; // Largura total incluindo os pipes
+    const LARGURA_LINHA = 80; // Largura total incluindo os pipes
     
     // Função auxiliar para formatar linha com conteúdo
     function formatarLinha(texto, valor = "") {
@@ -120,12 +120,17 @@ async function getAllStats(octokit, username) {
     const { name } = repo;
 
     // a) Contar commits dos últimos 7 dias nesse repositório
-    const commitsCount = await countCommitsLast7Days(octokit, username, name, sinceDate);
-    totalCommits7d += commitsCount;
+    try {
+      const commitsCount = await countCommitsLast7Days(octokit, username, name, sinceDate);
+      totalCommits7d += commitsCount;
 
-    if (commitsCount > maxCommitsNoRepo) {
-      maxCommitsNoRepo = commitsCount;
-      repoMaisAtivo = name;
+      if (commitsCount > maxCommitsNoRepo) {
+        maxCommitsNoRepo = commitsCount;
+        repoMaisAtivo = name;
+      }
+    } catch (error) {
+      console.error(`Erro ao contar commits para ${name}: ${error.message}`);
+      // Continua para o próximo repositório
     }
 
     // b) Somar linguagens
@@ -243,24 +248,38 @@ async function listAllUserRepos(octokit, username) {
  * Aqui, para simplificar, pegamos até 100 commits. Ajuste conforme necessidade.
  */
 async function countCommitsLast7Days(octokit, owner, repo, sinceDate) {
-  let page = 1;
-  const perPage = 100;
-  let total = 0;
-  while (true) {
-    const res = await octokit.repos.listCommits({
-      owner,
-      repo,
-      per_page: perPage,
-      page,
-      since: sinceDate
-    });
-    total += res.data.length;
-    if (res.data.length < perPage) {
-      break;
+  try {
+    let page = 1;
+    const perPage = 100;
+    let total = 0;
+    while (true) {
+      try {
+        const res = await octokit.repos.listCommits({
+          owner,
+          repo,
+          per_page: perPage,
+          page,
+          since: sinceDate
+        });
+        total += res.data.length;
+        if (res.data.length < perPage) {
+          break;
+        }
+        page++;
+      } catch (error) {
+        // Se der um erro 404, o repositório pode não existir ou estar inacessível
+        if (error.status === 404) {
+          console.warn(`Repositório não encontrado ou inacessível: ${owner}/${repo}`);
+          return 0; // Retorna 0 commits para este repositório
+        }
+        throw error; // Re-lança outros tipos de erro
+      }
     }
-    page++;
+    return total;
+  } catch (error) {
+    console.warn(`Erro ao contar commits para ${owner}/${repo}: ${error.message}`);
+    return 0; // Retorna 0 commits em caso de erro
   }
-  return total;
 }
 
 /**
