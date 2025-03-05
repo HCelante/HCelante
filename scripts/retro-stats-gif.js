@@ -456,9 +456,9 @@ async function countSearchItems(octokit, query) {
  */
 async function generateGif(asciiLines) {
   const WIDTH = 900;
-  const HEIGHT = 1200;
-  const DELAY = 10;   // ms por frame
-  const END_DELAY = 6000; // delay maior no final da animação (em ms)
+  const HEIGHT = 900;
+  const LINE_DURATION = 500; // Meio segundo (500ms) para completar cada linha
+  const END_DELAY = 3000;    // 3 segundos no final da animação
 
   const encoder = new GIFEncoder(WIDTH, HEIGHT);
   const outputFile = path.join(__dirname, '..', 'retro-stats.gif');
@@ -467,7 +467,6 @@ async function generateGif(asciiLines) {
   encoder.createReadStream().pipe(writeStream);
   encoder.start();
   encoder.setRepeat(0);   // 0 = loop infinito
-  encoder.setDelay(DELAY);
   encoder.setQuality(4);
 
   const canvas = createCanvas(WIDTH, HEIGHT);
@@ -475,28 +474,31 @@ async function generateGif(asciiLines) {
   ctx.font = '16px monospace';
 
   // Simular digitação
-  const typedLines = asciiLines.map(() => ''); // array de strings vazias, mesmo tamanho
+  const typedLines = asciiLines.map(() => '');
   for (let i = 0; i < asciiLines.length; i++) {
     const fullLine = asciiLines[i];
+    const charsInLine = fullLine.length;
+    // Calcula o delay necessário para que a linha complete em 500ms
+    const charDelay = Math.floor(LINE_DURATION / charsInLine);
+    
+    encoder.setDelay(charDelay);
+    
     for (let j = 0; j < fullLine.length; j++) {
       typedLines[i] += fullLine[j];
       drawFrame(ctx, typedLines, WIDTH, HEIGHT);
       encoder.addFrame(ctx);
     }
-    // Pausa entre linhas
-    for (let x = 0; x < 3; x++) {
-      drawFrame(ctx, typedLines, WIDTH, HEIGHT);
-      encoder.addFrame(ctx);
-    }
-  }
-
-  // Adiciona uma pausa maior no final da animação antes de recomeçar
-  const framesNoFinal = Math.ceil(END_DELAY / DELAY);
-  encoder.setDelay(DELAY); // Mantém o mesmo delay para consistência
-  for (let i = 0; i < framesNoFinal; i++) {
+    
+    // Pequena pausa ao final de cada linha
+    encoder.setDelay(100);
     drawFrame(ctx, typedLines, WIDTH, HEIGHT);
     encoder.addFrame(ctx);
   }
+
+  // Pausa final
+  encoder.setDelay(END_DELAY);
+  drawFrame(ctx, typedLines, WIDTH, HEIGHT);
+  encoder.addFrame(ctx);
 
   encoder.finish();
 }
