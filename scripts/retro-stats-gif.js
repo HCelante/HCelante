@@ -455,8 +455,8 @@ async function countSearchItems(octokit, query) {
  * Gera o GIF animado, simulando "digitação" do array asciiLines.
  */
 async function generateGif(asciiLines) {
-  const WIDTH = 1200;
-  const HEIGHT = 900;
+  const WIDTH = 900;
+  const HEIGHT = 1200;
   const DELAY = 10;   // ms por frame
   const END_DELAY = 6000; // delay maior no final da animação (em ms)
 
@@ -468,7 +468,7 @@ async function generateGif(asciiLines) {
   encoder.start();
   encoder.setRepeat(0);   // 0 = loop infinito
   encoder.setDelay(DELAY);
-  encoder.setQuality(6);
+  encoder.setQuality(4);
 
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
