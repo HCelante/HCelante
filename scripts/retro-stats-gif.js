@@ -4,7 +4,7 @@
  * Exemplo de script Node.js que:
  * 1) Conta commits, PRs, e issues reais dos últimos 7 dias (API REST do GitHub).
  * 2) Descobre a linguagem mais usada e o repo mais ativo em commits.
- * 3) Gera um GIF animado estilo "terminal" digitando essas estatísticas.
+ * 3) Gera um GIF animado estilo "terminal" revelando as estatísticas linha a linha.
  *
  * Depende de:
  *   - @octokit/rest
@@ -452,13 +452,17 @@ async function countSearchItems(octokit, query) {
 }
 
 /**
- * Gera o GIF animado, simulando "digitação" do array asciiLines.
+ * Gera o GIF animado: um quadro por linha (cada quadro acrescenta uma linha completa).
  */
 async function generateGif(asciiLines) {
   const WIDTH = 900;
   const HEIGHT = 900;
-  const LINE_DURATION = 500; // Meio segundo (500ms) para completar cada linha
-  const END_DELAY = 3000;    // 3 segundos no final da animação
+  /** Tempo total da revelação linha a linha (~1s entre o primeiro e o penúltimo quadro). */
+  const TOTAL_ANIM_MS = 1000;
+  /** Quadro final (painel completo) visível por 10s antes do loop. */
+  const END_HOLD_MS = 10000;
+  /** Atraso mínimo entre quadros da animação (GIF costuma ignorar valores muito baixos). */
+  const MIN_DELAY_MS = 20;
 
   const encoder = new GIFEncoder(WIDTH, HEIGHT);
   const outputFile = path.join(__dirname, '..', 'retro-stats.gif');
@@ -473,32 +477,38 @@ async function generateGif(asciiLines) {
   const ctx = canvas.getContext('2d');
   ctx.font = '16px monospace';
 
-  // Simular digitação
+  const nLines = asciiLines.length;
   const typedLines = asciiLines.map(() => '');
-  for (let i = 0; i < asciiLines.length; i++) {
-    const fullLine = asciiLines[i];
-    const charsInLine = fullLine.length;
-    // Calcula o delay necessário para que a linha complete em 500ms
-    const charDelay = Math.floor(LINE_DURATION / charsInLine);
-    
-    encoder.setDelay(charDelay);
-    
-    for (let j = 0; j < fullLine.length; j++) {
-      typedLines[i] += fullLine[j];
-      drawFrame(ctx, typedLines, WIDTH, HEIGHT);
-      encoder.addFrame(ctx);
-    }
-    
-    // Pequena pausa ao final de cada linha
-    encoder.setDelay(100);
+
+  if (nLines === 0) {
+    encoder.finish();
+    return;
+  }
+
+  if (nLines === 1) {
+    typedLines[0] = asciiLines[0];
+    encoder.setDelay(TOTAL_ANIM_MS);
+    drawFrame(ctx, typedLines, WIDTH, HEIGHT);
+    encoder.addFrame(ctx);
+    encoder.setDelay(END_HOLD_MS);
+    drawFrame(ctx, typedLines, WIDTH, HEIGHT);
+    encoder.addFrame(ctx);
+    encoder.finish();
+    return;
+  }
+
+  const lineDelay = Math.max(
+    MIN_DELAY_MS,
+    Math.round(TOTAL_ANIM_MS / (nLines - 1))
+  );
+
+  for (let i = 0; i < nLines; i++) {
+    typedLines[i] = asciiLines[i];
+    const delay = i < nLines - 1 ? lineDelay : END_HOLD_MS;
+    encoder.setDelay(delay);
     drawFrame(ctx, typedLines, WIDTH, HEIGHT);
     encoder.addFrame(ctx);
   }
-
-  // Pausa final
-  encoder.setDelay(END_DELAY);
-  drawFrame(ctx, typedLines, WIDTH, HEIGHT);
-  encoder.addFrame(ctx);
 
   encoder.finish();
 }

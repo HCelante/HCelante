@@ -1,19 +1,27 @@
-<!-- ### Hello, I'm Higor 👋 -->
-<!--
-- ![Higor's GitHub stats](https://github-readme-stats.vercel.app/api?username=hcelante&layout=compact&show_icons=true&theme=tokyonight)-->
-![Retro Stats](https://github.com/hcelante/HCelante/blob/main/retro-stats.gif)
+# Estatísticas GitHub
 
-<!-- ![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=hcelante&layout=compact&show_icons=true&theme=tokyonight&hide=jupyter%20notebook,rust,pug,c,shell) -->
+![Estatísticas em GIF](retro-stats.gif)
 
-<!-- - 🌱 I’m currently interested in Machine Learning -->
-<!--
+## Dados dos últimos 7 dias
+- **Commits:** 7
+- **PRs criadas:** 0
+- **Issues abertas:** 0
+- **Repositório mais ativo:** HCelante
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Estatísticas Gerais
+- **Total de repositórios:** 45
+- **Repositórios públicos:** 45
+- **Repositórios privados:** 0
+- **Total de stars:** 41
+- **Total de forks:** 21
+- **Conta criada em:** 2015-10-04
+
+## Linguagens Mais Usadas
+- **Linguagem mais usada:** C
+- **Segunda linguagem mais usada:** JavaScript
+- **Terceira linguagem mais usada:** C++
+- **Quarta linguagem mais usada:** Python
+
+Atualizado em: 2026-05-15 02:34:12 UTC
+
+---
